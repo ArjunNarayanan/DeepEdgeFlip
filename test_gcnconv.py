@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional as F
 from torch.nn import ReLU
 from torch_geometric.nn import GCNConv, Sequential, global_add_pool
 import torch.optim as optim
@@ -7,26 +6,28 @@ import load_graphs
 import numpy as np
 
 
+def make_network(arch):
+    gcn = []
+    for idx in range(len(arch) - 2):
+        gcn.append((GCNConv(arch[idx], arch[idx + 1]), "x, edge_index -> x"))
+        gcn.append(ReLU())
+
+    gcn.append((GCNConv(arch[-2], arch[-1]), "x, edge_index -> x"))
+
+    model = Sequential("x, edge_index", gcn)
+    return model
+
+
 class GCN(torch.nn.Module):
-    def __init__(self, npl):
+    def __init__(self, arch):
         super().__init__()
-        self.conv1 = GCNConv(1, npl)
-        self.conv2 = GCNConv(npl, npl)
-        self.conv3 = GCNConv(npl, npl)
-        self.conv4 = GCNConv(npl, 1)
+        self.gcn = make_network(arch)
 
-    def forward(self, data):
-        x, edge_index = data.x, data.edge_index
+    def forward(self, batch):
+        x, edge_index = batch.x, batch.edge_index
+        x = self.gcn(x, edge_index)
 
-        x = self.conv1(x, edge_index)
-        x = F.relu(x)
-        x = self.conv2(x, edge_index)
-        x = F.relu(x)
-        x = self.conv3(x, edge_index)
-        x = F.relu(x)
-        x = self.conv4(x, edge_index)
-
-        return global_add_pool(x, data.batch)
+        return global_add_pool(x, batch.batch)
 
 
 def make_network(arch):
@@ -54,7 +55,7 @@ def train_model(model, train_set, test_set, lr=0.001, num_epochs=50):
         for idx, batch in enumerate(train_set):
             optimizer.zero_grad()
 
-            prediction = model(batch.x, batch.edge_index)
+            prediction = model(batch)
             loss = loss_function(prediction, batch.y)
             train_loss += loss.item()
 
@@ -67,7 +68,7 @@ def train_model(model, train_set, test_set, lr=0.001, num_epochs=50):
 
         with torch.no_grad():
             batch = next(iter(test_set))
-            test_pred = model(batch.x, batch.edge_index)
+            test_pred = model(batch)
             test_loss_history[epoch] = loss_function(test_pred, batch.y).item()
 
         test_pred = test_pred.numpy()
@@ -103,14 +104,14 @@ def measure_accuracy(prediction, truth):
     return accuracy
 
 
-num_meshes = 100
+num_meshes = 1000
 train_ratio = 0.8
 
 train_loader, test_loader = load_graphs.load_all_graphs(num_meshes, batch_size=32, train_ratio=train_ratio)
 
 arch = [1, 4, 8, 4, 1]
-model = make_network(arch)
-lr = 0.001
+model = GCN(arch)
+lr = 0.0001
 train_loss, test_loss, test_accuracy = train_model(model, train_loader, test_loader, lr=lr, num_epochs=50)
 
 # import matplotlib.pyplot as plt
