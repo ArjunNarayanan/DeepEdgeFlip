@@ -2,6 +2,7 @@ import torch
 import pandas as pd
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
+from torch_geometric.utils import to_undirected
 
 
 def load_graph(mesh_num):
@@ -12,11 +13,13 @@ def load_graph(mesh_num):
     vertexscores = pd.read_csv(vertexfile, header=None)
 
     edge_tensor = torch.tensor(edges.values, dtype=torch.long)
+    edge_index = to_undirected(edge_tensor.t().contiguous())
+
     vertex_tensor = torch.tensor(vertexscores.values, dtype=torch.float)
 
     reward = torch.tensor([[load_reward_history(mesh_num)]], dtype=torch.float)
 
-    graph = Data(x=vertex_tensor, edge_index=edge_tensor.t().contiguous(), y=reward)
+    graph = Data(x=vertex_tensor, edge_index=edge_index, y=reward)
     return graph
 
 

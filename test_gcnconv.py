@@ -104,14 +104,14 @@ def measure_accuracy(prediction, truth):
     return accuracy
 
 
-num_meshes = 1000
+num_meshes = 2000
 train_ratio = 0.8
 
 train_loader, test_loader = load_graphs.load_all_graphs(num_meshes, batch_size=32, train_ratio=train_ratio)
 
-arch = [1, 4, 8, 4, 1]
+arch = [1, 4, 4, 1]
 model = GCN(arch)
-lr = 0.0001
+lr = 0.001
 train_loss, test_loss, test_accuracy = train_model(model, train_loader, test_loader, lr=lr, num_epochs=50)
 
 # import matplotlib.pyplot as plt
