@@ -1,7 +1,7 @@
 import torch
 from torch_sparse import SparseTensor
 import numpy as np
-from torch_geometric.utils import to_undirected
+
 
 
 def delete_edge_mask(row, col, node1, node2):
@@ -70,9 +70,26 @@ def flip_edge_by_index(edge_index, index):
     return edge_flip(edge_index, n1, n2)
 
 
-num_nodes = 4
-edge_index = torch.tensor([[0, 0, 0, 1, 2],
-                           [1, 2, 3, 2, 3]], dtype=torch.long)
-edge_index = to_undirected(edge_index)
+def random_flips(edge_index, nflips):
+    counter = 0
+    num_edges = edge_index.shape[1]
+    edge_range = range(num_edges)
 
-new_edge_index = edge_flip(edge_index, 0, 2)
+    while counter < nflips:
+        flip_edge = np.random.choice(edge_range)
+        edge_index, success = flip_edge_by_index(edge_index, flip_edge)
+        if success:
+            counter += 1
+
+    return edge_index
+
+
+
+
+# from torch_geometric.utils import to_undirected
+# num_nodes = 4
+# edge_index = torch.tensor([[0, 0, 0, 1, 2],
+#                            [1, 2, 3, 2, 3]], dtype=torch.long)
+# edge_index = to_undirected(edge_index)
+#
+# new_edge_index = edge_flip(edge_index, 0, 2)

@@ -9,7 +9,8 @@ import numpy as np
 def make_network(arch):
     gcn = []
     for idx in range(len(arch) - 2):
-        gcn.append((GCNConv(arch[idx], arch[idx + 1]), "x, edge_index -> x"))
+        gcn.append((GCNConv
+                    (arch[idx], arch[idx + 1]), "x, edge_index -> x"))
         gcn.append(ReLU())
 
     gcn.append((GCNConv(arch[-2], arch[-1]), "x, edge_index -> x"))
