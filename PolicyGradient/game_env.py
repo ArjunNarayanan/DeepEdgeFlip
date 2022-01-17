@@ -7,7 +7,7 @@ def vertex_degree(edge_index):
     return deg
 
 def env_score(vertex_score):
-    return vertex_score.abs().sum().item()
+    return vertex_score.abs().sum()
 
 
 class GameEnv():
@@ -24,13 +24,13 @@ class GameEnv():
     def step(self, action):
 
         old_score = self.score
-        self.edge_index = edgeflip.flip_edge_by_index(self.edge_index, action)
+        self.edge_index, success = edgeflip.flip_edge_by_index(self.edge_index, action)
         self.degree = vertex_degree(self.edge_index)
         self.vertex_score = self.degree - self.desired_degree
         self.score = env_score(self.vertex_score)
 
         reward = old_score - self.score
-        done = True if env.score == 0 else False
+        done = True if self.score == 0 else False
 
         return reward, done
 

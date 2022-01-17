@@ -1,11 +1,11 @@
 import torch
 from torch.nn import ReLU
-from torch.nn.functional import  softmax
-import game_env, edgeflip
+import game_env
 from torch_geometric.nn import GCNConv, Sequential
-from torch_geometric.utils import degree
-from torch_geometric.loader import DataLoader
-from torch_geometric.data import Data
+from torch.distributions.categorical import Categorical
+from copy import deepcopy
+from torch.optim import Adam
+
 
 def make_network(arch):
     gcn = []
@@ -19,32 +19,68 @@ def make_network(arch):
     return model
 
 
+class Policy(torch.nn.Module):
+    def __init__(self, arch):
+        super().__init__()
+        self.gcn = make_network(arch)
 
-env = game_env.GameEnv(0)
+    def forward(self, env):
+        x, edge_index = env.vertex_score, env.edge_index
+        x = self.gcn(x, edge_index)
+
+        src, dst = edge_index
+        logits = (x[src] * x[dst]).sum(dim=-1)
+
+        return logits
+
+def policy_gradient_loss(probabilities, action, weights):
+    logp = probabilities.log_prob(action)
+    return -(logp * weights).mean()
 
 
-# num_edges = edge_index.shape[1]
+def train_one_epoch(policy, nflips = 10, batch_size = 32, nsteps = 100):
+    batch_obs = []
+    batch_acts = []
+    batch_weights = []
+    batch_rets = []
+    batch_lens = []
+    ep_rewards = []
+
+    obs = game_env.GameEnv(nflips)
+    done = False
+    counter = 0
+
+    while counter < nsteps:
+        batch_obs.append(deepcopy(env))
+
+        logits = policy(env)
+        probabilities = Categorical(logits=logits)
+
+        action = probabilities.sample()
+        reward, done = env.step(action)
+
+        batch_acts.append(action)
+        ep_rewards.append(reward)
+
+        counter += 1
+
+    return batch_acts, ep_rewards
+
+
+
+env = game_env.GameEnv(10)
+
+arch = [1, 4]
+policy = Policy(arch)
+
+batch_acts, ep_rewards = train_one_epoch(policy)
+
+
+# logits = policy(env)
+# probabilities = Categorical(logits=logits)
 #
-# edge_index = edgeflip.random_flips(edge_index,30)
-# deg = vertex_degree(edge_index)
+# action = probabilities.sample()
 #
-# X1 = deg - ideal_degree
-# graph_score1 = sum(abs(X1)).item()
-#
-#
-# arch = [1,4]
-# model = make_network(arch)
-#
-# out = model(X1, edge_index)
-# src, dst = edge_index
-#
-# score = (out[src] * out[dst]).sum(dim=-1)
-# probability = softmax(score,dim=0)
-#
-# idx = torch.multinomial(probability,1).item()
-#
-# edge_index, success = edgeflip.flip_edge_by_index(edge_index,idx)
-# deg = vertex_degree(edge_index)
-#
-# X2 = deg - ideal_degree
-# graph_score2 = sum(abs(X2)).item()
+# reward, done = env.step(action)
+# loss = policy_gradient_loss(probabilities, action, reward)
+# loss.backward()
