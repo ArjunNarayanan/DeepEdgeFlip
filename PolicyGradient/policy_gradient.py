@@ -1,12 +1,8 @@
 import torch
-from torch.nn import ReLU
+from torch.nn import ReLU, Linear, Sequential
 from torch.nn.functional import softmax, log_softmax
-import edgeflip
-import game_env
-from torch_geometric.nn import GCNConv, Sequential
-from torch.distributions.categorical import Categorical
+# from torch_geometric.nn import GCNConv, Sequential
 from torch.optim import Adam
-from torch_geometric.data import Data
 
 
 def make_network(arch):
@@ -20,8 +16,19 @@ def make_network(arch):
     model = Sequential("x, edge_index", gcn)
     return model
 
+def make_mlp_network(arch):
+    mlp = []
+    for idx in range(len(arch) - 2):
+        mlp.append(Linear(arch[idx],arch[idx+1]))
+        mlp.append(ReLU())
 
-class Policy(torch.nn.Module):
+    mlp.append(Linear(arch[-2], arch[-1]))
+
+    model = Sequential(*mlp)
+    return model
+
+
+class GNNPolicy(torch.nn.Module):
     def __init__(self, arch):
         super().__init__()
         self.gcn = make_network(arch)
@@ -36,6 +43,16 @@ class Policy(torch.nn.Module):
         return logits
 
 
+class MLPPolicy(torch.nn.Module):
+    def __init__(self, arch):
+        super().__init__()
+        self.mlp = make_mlp_network(arch)
+
+    def forward(self, env):
+        logits = self.mlp(env.x)
+        return logits
+
+
 def policy_gradient_loss(logits, actions, weights):
     logp = log_softmax(logits, dim=1).gather(1, actions.view(-1, 1))
     return -(logp * weights).mean()
@@ -43,7 +60,6 @@ def policy_gradient_loss(logits, actions, weights):
 
 def collect_batch_trajectories(env, policy, batch_size):
     batch_logits = []
-    batch_weights = []
     batch_actions = []
     batch_weights = []
     batch_rets = []
@@ -107,45 +123,21 @@ def run_training_loop(env, policy, batch_size, num_epochs, learning_rate):
     return return_trajectory
 
 
-arch = [1, 4, 4]
+import template_graph
 
-num_epochs = 10
+arch = [4, 2]
+
+num_epochs = 100
 batch_size = 5
-learning_rate = 1.0
+learning_rate = 0.1
 
-env = game_env.load_template_env()
-policy = Policy(arch)
+env = template_graph.GameEnv()
+policy = MLPPolicy(arch)
 
-return_trajectory = run_training_loop(env, policy, batch_size, num_epochs, learning_rate)
+logits = policy(env)
 
-# optimizer = Adam(policy.parameters(), lr=learning_rate)
+# history = run_training_loop(env,policy,batch_size,num_epochs,learning_rate)
 #
-# batch_logits, batch_actions, batch_weights, average_return = collect_batch_trajectories(env, policy, batch_size)
-# loss = policy_gradient_loss(batch_logits, batch_actions, batch_weights)
-# loss.backward()
-# optimizer.step()
-#
-# env.reset()
-# logits = policy(env)
-# probs = softmax(logits, dim=0)
-
-# lr = 0.01
-# batch_size=1
-# optimizer = Adam(policy.parameters(), lr=lr)
-#
-# return_trajectory = training_loop(env, policy, optimizer, numepochs, batch_size)
 #
 # import matplotlib.pyplot as plt
-# plt.plot(return_trajectory)
-
-# env.reset()
-# batch_probs, batch_acts, batch_weights, average_return = collect_batch_trajectories(env, policy, batch_size)
-# loss = [policy_gradient_loss(batch_probs[i], batch_acts[i], batch_weights[i]) for i in range(len(batch_probs))]
-#
-# mean_loss = torch.mean(torch.tensor(loss, requires_grad=True))
-# mean_loss.backward()
-# optimizer.step()
-
-
-# probs = Categorical(logits=policy(env)).probs
-# print(probs)
+# plt.plot(history)

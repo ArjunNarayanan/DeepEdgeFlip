@@ -2,8 +2,6 @@ import torch
 from torch.nn import Linear
 from torch.nn.functional import softmax, log_softmax
 from torch.optim import Adam
-import policy_gradient
-from torch.distributions import Categorical
 
 
 class ConstantGameEnv():
