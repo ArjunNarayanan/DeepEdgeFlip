@@ -34,7 +34,6 @@ def load_reward_history(mesh_num, max_reward_per_step=4):
 def load_all_graphs(num_meshes, batch_size=32, train_ratio=0.6, test_ratio=0.2):
     mesh_numbers = range(1, num_meshes + 1)
     train_size = int(train_ratio * num_meshes)
-    test_size = int()
     test_size = num_meshes - train_size
 
     all_graphs = [load_graph(i) for i in mesh_numbers]

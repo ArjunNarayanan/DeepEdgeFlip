@@ -16,16 +16,7 @@ def make_network(arch):
     model = Sequential("x, edge_index", gcn)
     return model
 
-def make_mlp_network(arch):
-    mlp = []
-    for idx in range(len(arch) - 2):
-        mlp.append(Linear(arch[idx],arch[idx+1]))
-        mlp.append(ReLU())
 
-    mlp.append(Linear(arch[-2], arch[-1]))
-
-    model = Sequential(*mlp)
-    return model
 
 
 class GNNPolicy(torch.nn.Module):
@@ -88,7 +79,7 @@ def collect_batch_trajectories(env, policy, batch_size):
                 break
             else:
                 env.reset()
-                done, ep_rewards = False, []
+                ep_rewards = []
 
     batch_logits = torch.cat(batch_logits)
     batch_weights = torch.tensor(batch_weights)
@@ -127,17 +118,19 @@ import template_graph
 
 arch = [4, 2]
 
-num_epochs = 100
-batch_size = 5
+num_epochs = 1000
+batch_size = 32
 learning_rate = 0.1
 
 env = template_graph.GameEnv()
 policy = MLPPolicy(arch)
 
-logits = policy(env)
+history = run_training_loop(env, policy, batch_size, num_epochs, learning_rate)
 
-# history = run_training_loop(env,policy,batch_size,num_epochs,learning_rate)
-#
-#
-# import matplotlib.pyplot as plt
-# plt.plot(history)
+import matplotlib.pyplot as plt
+plt.clf()
+plt.plot(history)
+
+# win_env = template_graph.make_template_with_score([1,-1,1,-1])
+# logits = policy(win_env)
+# probs = softmax(logits,dim=0)

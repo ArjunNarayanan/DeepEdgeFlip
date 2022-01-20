@@ -29,9 +29,8 @@ def make_network(arch):
     return model
 
 
-def train_model(model, train_set, test_set, lr=0.001, num_epochs=50):
+def train_model(model, optimizer, train_set, test_set, num_epochs=50):
     loss_function = torch.nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     train_loss_history = np.zeros([num_epochs, 1])
     test_loss_history = np.zeros([num_epochs, 1])
@@ -64,7 +63,7 @@ def train_model(model, train_set, test_set, lr=0.001, num_epochs=50):
         accuracy = measure_accuracy(test_pred, ground_truth)
         test_accuracy[epoch] = accuracy
 
-        print("epoch = %d \t train loss = %.4f \t test loss = %.4f \t accuracy = %.1f" % (
+        print("epoch = %d \t train loss = %.3e \t test loss = %.3e \t accuracy = %.1f" % (
             epoch, train_loss_history[epoch], test_loss_history[epoch], accuracy))
 
     return train_loss_history, test_loss_history, test_accuracy
@@ -95,31 +94,34 @@ def measure_accuracy(prediction, truth):
 num_meshes = 2000
 train_ratio = 0.8
 
-train_loader, test_loader = load_graphs.load_all_graphs(num_meshes, batch_size=32, train_ratio=train_ratio)
+# train_loader, test_loader = load_graphs.load_all_graphs(num_meshes, batch_size=32, train_ratio=train_ratio)
 
-arch = [1, 4, 4, 1]
+arch = [1]
+lr = 0.01
+num_epochs = 50
 model = GCN(arch)
-lr = 0.001
-train_loss, test_loss, test_accuracy = train_model(model, train_loader, test_loader, lr=lr, num_epochs=50)
+optimizer = optim.Adam(model.parameters(), lr=lr)
 
-# import matplotlib.pyplot as plt
-#
-# architecture = "1-4-4-4-1"
-#
-# fig,ax = plt.subplots()
-# ax.plot(train_loss,label="Train Loss")
+train_loss, test_loss, test_accuracy = train_model(model, optimizer, train_loader, test_loader, num_epochs=num_epochs)
+
+import matplotlib.pyplot as plt
+
+# architecture = "1-4-4-1"
+# foldername = "results\\"
+# fig, ax = plt.subplots()
+# ax.plot(train_loss, label="Train Loss")
 # ax.set_yscale("log")
-# ax.plot(test_loss,label="Test Loss")
+# ax.plot(test_loss, label="Test Loss")
 # ax.set_xlabel("Epochs")
 # ax.set_ylabel("Loss")
-# ax.set_title(architecture + " architecture")
+# ax.set_title(architecture + " architecture loss")
 # ax.legend()
-# fig.savefig("train-test-loss-" + architecture + ".png")
+# fig.savefig(foldername + "train-test-loss-" + architecture + ".png")
 #
-# fig,ax = plt.subplots()
-# ax.plot(test_accuracy)
+# fig, ax = plt.subplots()
+# ax.plot(test_accuracy, color="orange")
 # ax.set_xlabel("Epochs")
 # ax.set_ylabel("Test accuracy")
-# ax.set_ylim([0,100])
-# ax.set_title(architecture + " architecture")
-# fig.savefig("test-accuracy-" + architecture + ".png")
+# ax.set_ylim([0, 100])
+# ax.set_title(architecture + " architecture Test Accuracy")
+# fig.savefig(foldername + "test-accuracy-" + architecture + ".png")

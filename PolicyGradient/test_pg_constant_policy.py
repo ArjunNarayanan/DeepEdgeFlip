@@ -3,42 +3,28 @@ from torch.nn import Linear
 from torch.nn.functional import softmax, log_softmax
 from torch.optim import Adam
 
-
-class ConstantGameEnv():
-    def __init__(self):
-        return
-
-    def reset(self):
-        return
-
-    def step(self, actions):
-        reward = reward_function(actions)
-        return reward, True
-
-
 class Policy(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.lin = Linear(1, 2)
 
-    def forward(self, x):
+    def forward(self):
         return self.lin(torch.tensor([1.0]))
 
 
 def reward_function(actions):
-    reward = torch.zeros_like(actions, dtype=torch.float)
-    reward[actions == 0] = 1.0
+    reward = torch.clone(actions).float()
     return reward
 
 
-def collect_batch_trajectories(env, policy, batch_size):
+def collect_batch_trajectories(policy, batch_size):
     batch_logits = []
     batch_weights = []
     batch_actions = []
 
     counter = 0
     while True:
-        logits = policy(env)
+        logits = policy()
         probs = softmax(logits, dim=0)
         action = torch.multinomial(probs, 1)
 
@@ -65,10 +51,10 @@ def policy_gradient_loss(logits, actions, weights):
     return -(logp * weights).mean()
 
 
-def step_epoch(env, policy, optimizer, batch_size):
+def step_epoch(policy, optimizer, batch_size):
     optimizer.zero_grad()
 
-    batch_logits, batch_actions, batch_weights = collect_batch_trajectories(env, policy, batch_size)
+    batch_logits, batch_actions, batch_weights = collect_batch_trajectories(policy, batch_size)
     loss = policy_gradient_loss(batch_logits, batch_actions, batch_weights)
 
     loss.backward()
@@ -78,41 +64,30 @@ def step_epoch(env, policy, optimizer, batch_size):
     return avg_reward
 
 
-def run_training_loop(env, policy, batch_size, num_epochs, learning_rate):
+def run_training_loop(policy, batch_size, num_epochs, learning_rate):
     optimizer = Adam(policy.parameters(), lr=learning_rate)
     history = []
 
     for epoch in range(num_epochs):
-        avg_reward = step_epoch(env,policy,optimizer,batch_size)
+        avg_reward = step_epoch(policy,optimizer,batch_size)
         history.append(avg_reward)
 
     return history
 
 policy = Policy()
-env = ConstantGameEnv()
 
-lr = 0.1
+learning_rate = 0.1
 batch_size = 10
 num_epochs = 100
-optimizer = Adam(policy.parameters(), lr=lr)
 
-
-history = run_training_loop(env, policy, batch_size, num_epochs, lr)
-
+history = run_training_loop(policy,batch_size,num_epochs,learning_rate)
 
 import matplotlib.pyplot as plt
-plt.plot(history)
+fig,ax = plt.subplots()
+ax.plot(history)
+ax.set_xlabel("Epochs")
+ax.set_ylabel("Average return")
+ax.set_title("Average return vs epochs for 2 state, fixed returns")
+fig.savefig("results\\constant-policy.png")
 
-
-
-# optimizer.zero_grad()
-#
-# batch_logits, batch_actions, batch_weights = collect_batch_trajectories(env, policy, batch_size)
-# probs0 = softmax(batch_logits[0],dim=0)
-#
-# loss = policy_gradient_loss(batch_logits, batch_actions, batch_weights)
-# loss.backward()
-# optimizer.step()
-#
-# batch_logits, batch_actions, batch_weights = collect_batch_trajectories(env, policy, batch_size)
-# probs1 = softmax(batch_logits[0],dim=0)
+probs = softmax(policy(),dim=0)
