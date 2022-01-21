@@ -81,13 +81,9 @@ batch_size = 10
 num_epochs = 100
 
 history = run_training_loop(policy,batch_size,num_epochs,learning_rate)
+history = torch.tensor(history)
 
-import matplotlib.pyplot as plt
-fig,ax = plt.subplots()
-ax.plot(history)
-ax.set_xlabel("Epochs")
-ax.set_ylabel("Average return")
-ax.set_title("Average return vs epochs for 2 state, fixed returns")
-fig.savefig("results\\constant-policy.png")
-
-probs = softmax(policy(),dim=0)
+import utilities
+avg_history = utilities.moving_average(history,n=5)
+utilities.plot_return_history(avg_history)
+# probs = softmax(policy(),dim=0)

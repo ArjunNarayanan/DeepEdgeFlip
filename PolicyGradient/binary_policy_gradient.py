@@ -1,10 +1,9 @@
 import torch
-from torch.nn.functional import softmax, log_softmax
 from torch.optim import Adam
 
 
-def policy_gradient_loss(logits, actions, weights):
-    logp = log_softmax(logits, dim=1).gather(1, actions.view(-1, 1))
+def policy_gradient_loss(probs, actions, weights):
+    logp = (probs.log()).gather(1, actions.view(-1, 1))
     return -(logp * weights).mean()
 
 
@@ -17,13 +16,13 @@ def collect_batch_trajectories(env, policy, batch_size):
     ep_rewards = []
 
     while True:
-        logits = policy(env)
-        probs = softmax(logits, dim=0)
-        action = torch.multinomial(probs, 1)
+        logit = policy(env)
+        prob = logit.sigmoid()
+        action = 1 if prob > 0.5 else 0
 
         reward, done = env.step(action)
 
-        batch_logits.append(logits.unsqueeze(0))
+        batch_logits.append(logit.unsqueeze(0))
         batch_actions.append(action)
         ep_rewards.append(reward)
 
@@ -71,5 +70,3 @@ def run_training_loop(env, policy, batch_size, num_epochs, learning_rate):
         return_trajectory.append(average_return)
 
     return return_trajectory
-
-
