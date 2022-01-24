@@ -68,25 +68,25 @@ def make_template_with_score(vertex_scores):
     return env
 
 
-arch = [4, 2]
-num_epochs = 200
+arch = [4, 4, 2]
+num_epochs = 1000
 batch_size = 32
-learning_rate = 0.1
+learning_rate = 0.01
 
 env = GameEnv()
 policy = MLPPolicy(arch)
 
-# history = policy_gradient.run_training_loop(env, policy, batch_size, num_epochs, learning_rate)
-#
-# import utilities
-#
-# history = torch.tensor(history)
-# avg_history = utilities.moving_average(history, n=5)
-# filename = "results\\4-4-2-mlp-template-return.png"
-# title = "Average return vs epochs for NN on template graph"
-# utilities.plot_return_history(avg_history, title=title, filename=filename)
-#
-# test_env = make_template_with_score([-1, 1, -1, 1])
+history = policy_gradient.run_training_loop(env, policy, batch_size, num_epochs, learning_rate)
+
+import utilities
+
+history = torch.tensor(history)
+avg_history = utilities.moving_average(history, n=5)
+filename = "results\\4-4-2-mlp-template-return.png"
+title = "Average return vs epochs for NN on template graph"
+utilities.plot_return_history(avg_history, title=title)
+
+# test_env = make_template_with_score([1, -1, 1, -1])
 # logits = policy(test_env)
 # probs = softmax(logits,dim=0)
 # print(probs)

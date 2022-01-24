@@ -41,8 +41,8 @@ def collect_batch_trajectories(env, policy, batch_size):
                 ep_rewards = []
 
     batch_logits = torch.cat(batch_logits)
-    batch_weights = torch.tensor(batch_weights)
-    batch_actions = torch.tensor(batch_actions)
+    batch_weights = torch.stack(batch_weights)
+    batch_actions = torch.cat(batch_actions)
 
     average_return = sum(batch_rets) / len(batch_rets)
     return batch_logits, batch_actions, batch_weights, average_return
